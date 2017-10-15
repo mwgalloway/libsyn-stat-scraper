@@ -2,7 +2,7 @@ var http = require('https');
 var querystring = require('querystring');
 var csvtojson = require('csvtojson');
 
-module.exports = function (context, req) {
+module.exports = function (context, timer) {
     let postData = querystring.stringify({
         'email': GetEnvironmentVariable('libsyn_user'),
         'password': GetEnvironmentVariable('libsyn_password')
@@ -55,15 +55,27 @@ module.exports = function (context, req) {
                     context.log('Retrieved Data');
 
                     let converter = new csvtojson.Converter({});
-                    converter.fromString(data, (e,r) => {
-                        let res = {
-                            status: 200,
-                            body: r
-                        }
-                        context.done(null, res);  
-                    });
 
-                                    
+                    converter.fromString(data, (e,r) => {
+                        let body = r
+
+                        let options = {
+                            hostname: "app.cyfe.com",
+                            path: GetEnvironmentVariable('cyfe_path'),
+                            port: 80,
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Content-Length": Buffer.byteLength(body)
+                            }
+                        }
+
+                        let request = new http.ClientRequest(options)
+
+                        request.end(body)
+
+                        context.done(null);  
+                    });           
                 });
             });
             
